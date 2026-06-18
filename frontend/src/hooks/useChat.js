@@ -2,6 +2,16 @@ import { useState, useCallback, useRef } from 'react';
 import { apiClient } from '../api/client';
 import { generateId } from '../utils/formatters';
 
+/** crypto.randomUUID() only works in secure contexts (HTTPS / localhost).
+ *  This fallback uses crypto.getRandomValues() which works everywhere. */
+const uuid = () =>
+  typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (crypto.getRandomValues(new Uint8Array(1))[0] & 15) >> (c === 'x' ? 0 : 3);
+        return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+      });
+
 const sourceLabel = (source) => {
   if (typeof source === 'string') return source;
   return source?.title || source?.sourceName || source?.documentId || 'knowledge base';
@@ -18,7 +28,7 @@ export const useChat = () => {
   const [messages, setMessages] = useState([initialMessage]);
   const [isTyping, setIsTyping] = useState(false);
   const [isEscalated, setIsEscalated] = useState(false);
-  const [sessionId, setSessionId] = useState(() => crypto.randomUUID());
+  const [sessionId, setSessionId] = useState(() => uuid());
   const typingTimeout = useRef(null);
 
   const sendMessage = useCallback(async (text) => {
@@ -197,7 +207,7 @@ export const useChat = () => {
         timestamp: new Date().toISOString(),
       },
     ]);
-    setSessionId(crypto.randomUUID());
+    setSessionId(uuid());
     setIsEscalated(false);
     setIsTyping(false);
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
